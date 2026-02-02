@@ -1,10 +1,11 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <string>
-#include <vector>cd
+#include <vector>
 #include <map>
 #include <algorithm>
+#include <string>
+
 using namespace std;
 
 struct Movie {
@@ -14,15 +15,9 @@ struct Movie {
     string length;
 };
 
-// Load movies from CSV
 vector<Movie> loadMovies() {
     vector<Movie> movies;
     ifstream file("../data/movies.csv");
-
-    if (!file.is_open()) {
-        cout << "Could not open movies.csv\n";
-        return movies;
-    }
 
     string line;
     getline(file, line); // skip header
@@ -39,7 +34,6 @@ vector<Movie> loadMovies() {
         movies.push_back(m);
     }
 
-    file.close();
     return movies;
 }
 
@@ -51,57 +45,65 @@ int main() {
         return 0;
     }
 
-    cout << "===== ClearChoice : Movie Decision Engine =====\n\n";
+    cout << "\n===== MoyaMoya Movie Decision Engine =====\n\n";
 
-    string mood, length;
+    string mood, length, energy, alone;
 
-    cout << "How are you feeling? (Happy/Calm/Intense): ";
+    cout << "Mood (Happy/Calm/Intense): ";
     cin >> mood;
 
-    cout << "How much time do you have? (Short/Medium/Long): ";
+    cout << "Time (Short/Medium/Long): ";
     cin >> length;
 
-    // Score for each movie
-    map<string, int> score;
+    cout << "Energy (Low/Medium/High): ";
+    cin >> energy;
 
-    // Simple weighted scoring
+    cout << "Watching alone? (Yes/No): ";
+    cin >> alone;
+
+    map<string,int> score;
+
     for (auto &m : movies) {
-        score[m.title] = 0;
+        int s = 0;
 
-        if (m.mood == mood) score[m.title] += 3;
-        if (m.length == length) score[m.title] += 2;
+        if (m.mood == mood) s += 3;
+        if (m.length == length) s += 2;
+
+        if (energy == "High" && m.genre == "Action") s += 2;
+        if (energy == "Low" && m.genre == "Drama") s += 2;
+
+        if (alone == "Yes" && m.genre == "Romance") s += 1;
+        if (alone == "No" && m.genre == "Comedy") s += 2;
+
+        score[m.title] = s;
     }
 
-    // Rank movies
     vector<pair<int,string>> ranked;
-    for (auto &s : score) {
-        ranked.push_back({s.second, s.first});
+
+    for (auto &x : score)
+        ranked.push_back({x.second, x.first});
+
+    sort(ranked.rbegin(), ranked.rend());
+
+    cout << "\nTop Picks:\n";
+
+    for (int i = 0; i < min(3, (int)ranked.size()); i++) {
+        cout << i+1 << ". " << ranked[i].second
+             << " (score " << ranked[i].first << ")\n";
     }
 
-    sort(ranked.rbegin(), ranked.rend()); // highest score first
+    int confidence = 60;
+    if (ranked.size() >= 2)
+        confidence = min(90, 60 + (ranked[0].first - ranked[1].first)*10);
 
-    cout << "\nTop Recommendations:\n";
-
-    int k = min(3, (int)ranked.size());
-    for (int i = 0; i < k; i++) {
-        cout << i + 1 << ". " << ranked[i].second
-             << " (score: " << ranked[i].first << ")\n";
-    }
-
-    // Confidence calculation (very simple)
-    if (ranked.size() >= 2) {
-        int diff = ranked[0].first - ranked[1].first;
-        int confidence = min(90, 50 + diff * 10);
-        cout << "\nConfidence: " << confidence << "%\n";
-    } else {
-        cout << "\nConfidence: 80%\n";
-    }
+    cout << "\nConfidence: " << confidence << "%\n";
 
     cout << "\nWhy this?\n";
-    cout << "- Matches your mood\n";
-    cout << "- Fits your available time\n";
+    cout << "- matched your mood\n";
+    cout << "- fits your time\n";
+    cout << "- adjusted for energy\n";
 
-    cout << "\n=============================================\n";
+    cout << "\n========================================\n";
 
     return 0;
 }
